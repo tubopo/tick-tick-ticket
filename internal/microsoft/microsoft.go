@@ -2,7 +2,7 @@ package microsoft
 
 import (
 	"context"
-	"github.com/tubopo/pkg/config"
+	"github.com/tubopo/tick-tick-ticket/pkg/config"
 	"time"
 )
 

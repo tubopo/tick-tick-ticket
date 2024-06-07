@@ -11,10 +11,7 @@ type Config struct {
 }
 
 type MicrosoftConfig struct {
-	TenantID     string   `json:"tenantId"`
-	ClientID     string   `json:"clientId"`
-	ClientSecret string   `json:"clientSecret"`
-	Scopes       []string `json:"scopes"`
+	ApiKey string `json:"apiKey"`
 }
 
 type JiraConfig struct {

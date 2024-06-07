@@ -1,7 +1,7 @@
 package calendar
 
 import (
-	"github.com/tubopo/pkg/auth"
+	"github.com/tubopo/tick-tick-ticket/pkg/auth"
 )
 
 // CalendarService is an abstraction around a calendar service.

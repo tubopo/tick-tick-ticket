@@ -2,9 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/tubopo/internal/jira"
-	"github.com/tubopo/internal/microsoft"
-	"github.com/tubopo/pkg/config"
+	"github.com/tubopo/tick-tick-ticket/internal/jira"
+	"github.com/tubopo/tick-tick-ticket/internal/microsoft"
+	"github.com/tubopo/tick-tick-ticket/pkg/config"
 	"log"
 )
 

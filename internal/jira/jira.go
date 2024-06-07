@@ -1,9 +1,9 @@
 package jira
 
 import (
-	"github.com/tubopo/pkg/auth"
-	"github.com/tubopo/pkg/config"
-	"github.com/tubopo/pkg/logger"
+	"github.com/tubopo/tick-tick-ticket/pkg/auth"
+	"github.com/tubopo/tick-tick-ticket/pkg/config"
+	"github.com/tubopo/tick-tick-ticket/pkg/logger"
 )
 
 // Authenticator implements the authenticator interface for Jira.
