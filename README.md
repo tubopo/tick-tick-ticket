@@ -1,0 +1,60 @@
+# TickTickTicket ⌚️
+
+TickTickTicket is a command-line tool that takes the hassle out of logging meeting hours. Say goodbye to tracking down each meeting in your calendar and typing it manually into Jira. TickTickTicket does the heavy lifting for you, automating the process with just a few simple commands.
+
+Simplicity and efficiency are the cores of TickTickTicket. It's fast, it's fuss-free, and it's built to help you reclaim your time for what truly matters. Let's dive in!
+
+## Features
+
++ Automatically pulls time spent in meetings from your calendar (Microsoft).
++ Logs those hours directly into your Jira tickets.
++ Supports authentication to keep your data secure.
++ Command-line interface for easy integration into your workflow.
+
+## Getting Started
+
+Before you begin, make sure you have Go installed on your system. You can download and install Go from the official website.
+
+## Build
+
+Clone the repository to your local machine:
+
+```sh
+git clone https://github.com/tubopo/ticktickticket.git
+```
+
+Navigate to the cloned directory and build the project:
+
+```sh
+cd cmd/app
+go build -o app
+```
+
+## Configuration
+
+Create a config.json file with the following structure and provide your Microsoft/Google calendar API keys and Jira settings:
+
+```json
+{
+    "calendar": {
+        "provider": "microsoft",
+        "apiKey": "your_calendar_api_key_here"
+    },
+    "jira": {
+        "domain": "your_jira_domain",
+        "username": "your_jira_username",
+        "apiToken": "your_jira_api_token"
+    }
+}
+```
+
+## Usage
+
+Run TickTickTicket with the date and Jira ticket as arguments:
+
+```sh
+./app -date="2024-06-17" -ticket="JIRA-123"
+```
+
+This command will extract the time spent in meetings for the given date and log it to the specified Jira ticket.
+Now, managing your meeting time is as simple as a tick, tick, and a ticket!

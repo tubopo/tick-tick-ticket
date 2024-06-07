@@ -1,0 +1,11 @@
+.vscode
+.idea
+.DS_Store
+release
+ticktickticket
+ticktickticket.exe
+debug
+debug.test
+
+dist/
+config.json
