@@ -1,11 +1,13 @@
 package microsoft
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -22,7 +24,47 @@ type Authenticator struct {
 type authKey interface{}
 
 func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
-	//todo: implement this
+	var authKey authKey
+
+	if ctx.Value(authKey) != nil {
+		return ctx, nil
+	}
+
+	apiUrl := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", url.PathEscape(a.Cfg.TenantID))
+
+	// Create form data with the required OAuth parameters.
+	form := url.Values{}
+	form.Add("client_id", a.Cfg.ClientID)
+	form.Add("scope", "https://graph.microsoft.com/.default")
+	form.Add("grant_type", "client_credentials")
+	form.Add("client_secret", a.Cfg.ClientSecret)
+
+	req, err := http.NewRequestWithContext(ctx, "POST", apiUrl, bytes.NewBufferString(form.Encode()))
+	if err != nil {
+		return ctx, err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ctx, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ctx, fmt.Errorf("could not authenticate: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		AccessToken string `json:"access_token"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	ctx = context.WithValue(ctx, authKey, result.AccessToken)
 	return ctx, nil
 }
 

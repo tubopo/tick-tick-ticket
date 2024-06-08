@@ -6,12 +6,14 @@ import (
 )
 
 type Config struct {
-	Microsoft MicrosoftConfig `json:"microsoft"`
+	Microsoft MicrosoftConfig `json:"calendar"`
 	Jira      JiraConfig      `json:"jira"`
 }
 
 type MicrosoftConfig struct {
-	ApiKey string `json:"apiKey"`
+	ClientID     string `json:"clientId"`
+	ClientSecret string `json:"clientSecret"`
+	TenantID     string `json:"tenantId"`
 }
 
 type JiraConfig struct {

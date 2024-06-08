@@ -36,7 +36,7 @@ func main() {
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatal("Loading config failed: %v", err)
+		log.Fatal("Loading config failed:", err)
 	}
 
 	calendarService := microsoft.NewService(cfg.Microsoft, log)
