@@ -1,49 +1,104 @@
 package jira
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"time"
+
 	"github.com/tubopo/tick-tick-ticket/pkg/auth"
 	"github.com/tubopo/tick-tick-ticket/pkg/config"
 	"github.com/tubopo/tick-tick-ticket/pkg/logger"
+	"github.com/tubopo/tick-tick-ticket/pkg/work"
 )
 
-// Authenticator implements the authenticator interface for Jira.
 type Authenticator struct {
 	Cfg *config.JiraConfig
-	// Other fields such as HTTP clients or tokens
 }
 
-// Authenticate handles the interaction with Jira's authentication mechanism.
-func (a *Authenticator) Authenticate() error {
-	// TODO: Implement the auth logic here.
-	return nil
+type authKey interface{}
+
+type workLogPayload struct {
+	TimeSpentSeconds int `json:"timeSpentSeconds"`
 }
 
-// Service encapsulates the Jira API integration.
+func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
+	var authKey authKey
+
+	if ctx.Value(authKey) != nil {
+		return ctx, nil
+	}
+
+	if a.Cfg.APIToken == "" {
+		return nil, errors.New("API token is not set")
+	}
+
+	return context.WithValue(ctx, authKey, a.Cfg.APIToken), nil
+}
+
 type Service struct {
-	Authenticator auth.Authenticator
-	Logger        logger.Logger
-	// More fields such as HTTP client, user info, etc.
+	auth   auth.Authenticator
+	Cfg    *config.JiraConfig
+	Logger logger.Logger
 }
 
-// NewService creates a new Jira API service.
-func NewService(auth auth.Authenticator, logger logger.Logger) *Service {
+func NewService(cfg config.JiraConfig, log logger.Logger) work.Service {
 	return &Service{
-		Authenticator: auth,
-		Logger:        logger,
-		// Initialize other fields as necessary.
+		auth:   &Authenticator{Cfg: &cfg},
+		Cfg:    &cfg,
+		Logger: log,
 	}
 }
 
-// LogWork logs the specified time spent on a ticket.
-func (s *Service) LogWork(ticket string, timeSpent float64) error {
-	// TODO: Ensure the user is authenticated.
-	if err := s.Authenticator.Authenticate(); err != nil {
+func (s *Service) LogTime(jiraTicket string, duration time.Duration, ctx context.Context) error {
+	if jiraTicket == "" {
+		return errors.New("jira ticket is not set")
+	}
+
+	if duration == 0 {
+		return errors.New("duration is not set")
+	}
+
+	url := s.Cfg.Domain + "/rest/api/2/issue/" + jiraTicket + "/worklog"
+	s.Logger.Debug("Logging time to %s", url)
+
+	payload, err := json.Marshal(workLogPayload{TimeSpentSeconds: int(duration.Seconds())})
+	if err != nil {
 		return err
 	}
 
-	// TODO: Convert timeSpent to Jira's worklog format.
-	// TODO: Construct the API request to log the work in Jira.
-	// TODO: Send the request and handle the response or error.
+	s.Logger.Debug("Payload: %+v", payload)
 
-	return nil
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	ctx, err = s.auth.Authenticate(ctx)
+	if err != nil {
+		return err
+	}
+
+	var authKey authKey
+	req.Header.Set("Authorization", "Bearer "+ctx.Value(authKey).(string))
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusCreated {
+		s.Logger.Info("Logged time to %s  - %v", url, resp.StatusCode)
+		return nil
+	}
+
+	s.Logger.Debug("Got response: %v", resp.StatusCode)
+
+	return errors.New("failed to log time to JIRA")
 }

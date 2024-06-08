@@ -16,7 +16,6 @@ type MicrosoftConfig struct {
 
 type JiraConfig struct {
 	Domain   string `json:"domain"`
-	Username string `json:"username"`
 	APIToken string `json:"apiToken"`
 }
 

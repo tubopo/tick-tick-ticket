@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"flag"
+
 	"github.com/tubopo/tick-tick-ticket/internal/jira"
 	"github.com/tubopo/tick-tick-ticket/internal/microsoft"
 	"github.com/tubopo/tick-tick-ticket/pkg/config"
-	"log"
+	"github.com/tubopo/tick-tick-ticket/pkg/logger"
 )
 
 func main() {
@@ -15,25 +17,28 @@ func main() {
 
 	flag.Parse()
 
+	log := logger.New()
+
 	if *date == "" || *ticket == "" {
 		log.Fatal("You must specify both a date and a JIRA ticket")
 	}
 
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("Loading config failed: %v", err)
+		log.Fatal("Loading config failed: %v", err)
 	}
 
-	microsoftAuthenticator := &microsoft.Authenticator{Cfg: &cfg.Microsoft}
-	jiraAuthenticator := &jira.Authenticator{Cfg: cfg.Jira}
+	calendarService := microsoft.NewService(cfg.Microsoft, log)
 
-	// Setup the service clients
-	calendarService := microsoft.NewService(microsoftAuthenticator)
-	jiraService := jira.NewService(jiraAuthenticator)
-
-	// Perform the actions
-	err = calendarService.GetCalendarEvents(*date, *ticket, jiraService)
+	ctx := context.Background()
+	events, err := calendarService.GetCalendarEvents(*date, ctx)
 	if err != nil {
-		log.Fatalf("Failed to log time to JIRA: %v", err)
+		log.Error("Failed to retrieve calendar events: %v", err)
 	}
+
+	timeSpent := calendarService.CalcTotalDuration(events)
+
+	workLogger := jira.NewService(cfg.Jira, log)
+
+	workLogger.LogTime(*ticket, timeSpent, ctx)
 }

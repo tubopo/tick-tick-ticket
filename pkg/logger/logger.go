@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-// Logger defines the interface that any logger must implement.
 type Logger interface {
 	Debug(args ...interface{})
 	Info(args ...interface{})
@@ -14,12 +13,10 @@ type Logger interface {
 	Fatal(args ...interface{})
 }
 
-// SimpleLogger implements the Logger interface using the standard log package.
 type SimpleLogger struct {
 	*log.Logger
 }
 
-// New returns a new SimpleLogger.
 func New() *SimpleLogger {
 	return &SimpleLogger{
 		Logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
