@@ -6,5 +6,5 @@ import (
 )
 
 type Service interface {
-	LogTime(jiraTicket string, duration time.Duration, ctx context.Context) error
+	LogTime(duration time.Duration, ctx context.Context) error
 }

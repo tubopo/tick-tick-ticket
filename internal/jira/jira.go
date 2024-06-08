@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -39,21 +40,23 @@ func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, erro
 }
 
 type Service struct {
-	auth   auth.Authenticator
-	Cfg    *config.JiraConfig
-	Logger logger.Logger
+	auth       auth.Authenticator
+	Cfg        *config.JiraConfig
+	jiraTicket string
+	Logger     logger.Logger
 }
 
-func NewService(cfg config.JiraConfig, log logger.Logger) work.Service {
+func NewService(cfg config.JiraConfig, jiraTicket string, log logger.Logger) work.Service {
 	return &Service{
-		auth:   &Authenticator{Cfg: &cfg},
-		Cfg:    &cfg,
-		Logger: log,
+		auth:       &Authenticator{Cfg: &cfg},
+		Cfg:        &cfg,
+		jiraTicket: jiraTicket,
+		Logger:     log,
 	}
 }
 
-func (s *Service) LogTime(jiraTicket string, duration time.Duration, ctx context.Context) error {
-	if jiraTicket == "" {
+func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
+	if s.jiraTicket == "" {
 		return errors.New("jira ticket is not set")
 	}
 
@@ -61,7 +64,7 @@ func (s *Service) LogTime(jiraTicket string, duration time.Duration, ctx context
 		return errors.New("duration is not set")
 	}
 
-	url := s.Cfg.Domain + "/rest/api/2/issue/" + jiraTicket + "/worklog"
+	url := fmt.Sprintf("https://%s/rest/api/2/issue/%s/worklog", s.Cfg.Domain, s.jiraTicket)
 	s.Logger.Debug("Logging time to %s", url)
 
 	payload, err := json.Marshal(workLogPayload{TimeSpentSeconds: int(duration.Seconds())})
