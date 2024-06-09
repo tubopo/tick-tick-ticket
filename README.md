@@ -24,7 +24,7 @@ Before you begin, make sure you have Go installed on your system. You can downlo
 Clone the repository to your local machine:
 
 ```sh
-git clone https://github.com/tubopo/ticktickticket.git
+git clone https://github.com/tubopo/tick-tick-ticket.git
 ```
 
 Navigate to the cloned directory and build the project:
