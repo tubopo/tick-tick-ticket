@@ -1,6 +1,8 @@
 package auth
 
-import "context"
+import (
+	"context"
+)
 
 type Authenticator interface {
 	Authenticate(ctx context.Context) (context.Context, error)

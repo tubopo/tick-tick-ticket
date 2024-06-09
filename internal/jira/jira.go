@@ -19,7 +19,7 @@ type Authenticator struct {
 	Cfg *config.JiraConfig
 }
 
-type authKey interface{}
+type authKey struct{}
 
 type workLogPayload struct {
 	TimeSpentSeconds int `json:"timeSpentSeconds"`

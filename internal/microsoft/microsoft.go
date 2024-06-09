@@ -1,13 +1,12 @@
 package microsoft
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
-	"net/url"
 	"sort"
 	"time"
 
@@ -15,57 +14,65 @@ import (
 	"github.com/tubopo/tick-tick-ticket/pkg/calendar"
 	"github.com/tubopo/tick-tick-ticket/pkg/config"
 	"github.com/tubopo/tick-tick-ticket/pkg/logger"
+	"golang.org/x/oauth2"
 )
 
 type Authenticator struct {
-	Cfg *config.MicrosoftConfig
+	Cfg      *config.MicrosoftConfig
+	oauthCfg oauth2.Config
+	state    string
+	authCtx  context.Context
 }
 
-type authKey interface{}
+type authTokenKey struct{}
 
 func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
-	var authKey authKey
-
-	if ctx.Value(authKey) != nil {
-		return ctx, nil
+	a.state = "random-state"
+	a.oauthCfg = oauth2.Config{
+		ClientID:     a.Cfg.ClientID,
+		ClientSecret: a.Cfg.ClientSecret,
+		Scopes:       []string{"https://graph.microsoft.com/.default"},
+		RedirectURL:  "http://localhost:8000/auth",
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize", a.Cfg.TenantID),
+			TokenURL: fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", a.Cfg.TenantID),
+		},
 	}
 
-	apiUrl := fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", url.PathEscape(a.Cfg.TenantID))
+	http.HandleFunc("/auth/callback", a.AuthCallBackHandler)
+	go func() {
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			fmt.Printf("Error starting server: %s\n", err.Error())
+		}
+	}()
 
-	// Create form data with the required OAuth parameters.
-	form := url.Values{}
-	form.Add("client_id", a.Cfg.ClientID)
-	form.Add("scope", "https://graph.microsoft.com/.default")
-	form.Add("grant_type", "client_credentials")
-	form.Add("client_secret", a.Cfg.ClientSecret)
+	authURL := a.oauthCfg.AuthCodeURL(a.state, oauth2.AccessTypeOffline)
 
-	req, err := http.NewRequestWithContext(ctx, "POST", apiUrl, bytes.NewBufferString(form.Encode()))
-	if err != nil {
-		return ctx, err
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	fmt.Println("Please follow the URL to authenticate:", authURL)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return ctx, err
-	}
-	defer resp.Body.Close()
+	// var key authTokenKey
+	// ctx = context.WithValue(ctx, key, a.authCtx.Value(authTokenKey{}))
 
-	if resp.StatusCode != http.StatusOK {
-		return ctx, fmt.Errorf("could not authenticate: %d", resp.StatusCode)
-	}
-
-	var result struct {
-		AccessToken string `json:"access_token"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	ctx = context.WithValue(ctx, authKey, result.AccessToken)
 	return ctx, nil
+}
+
+func (a *Authenticator) AuthCallBackHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("state") != a.state {
+		http.Error(w, "Invalid state value", http.StatusBadRequest)
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+	token, err := a.oauthCfg.Exchange(context.Background(), code)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "Authentication successful! Token: %+v\n", token)
+
+	var key authTokenKey
+	a.authCtx = context.WithValue(r.Context(), key, token)
 }
 
 type Service struct {
@@ -103,8 +110,8 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 		return nil, err
 	}
 
-	var authKey authKey
-	req.Header.Set("Authorization", "Bearer "+ctx.Value(authKey).(string))
+	var key authTokenKey
+	req.Header.Set("Authorization", "Bearer "+ctx.Value(key).(string))
 
 	client := &http.Client{}
 
@@ -118,13 +125,18 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 		Value []calendar.Event `json:"value"`
 	}
 
-	if resp.StatusCode == http.StatusOK {
+	if resp.StatusCode != http.StatusOK {
+		respText, _ := io.ReadAll(resp.Body)
 
-		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			return nil, err
-		}
-		s.Logger.Info("Got calendar events %d", len(result.Value))
+		s.Logger.Debug("Got response: %v, %s", resp.StatusCode, string(respText))
+
+		return nil, errors.New("failed to retrieve calendar events")
 	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+	s.Logger.Info("Got calendar events %d", len(result.Value))
 
 	return result.Value, nil
 }
