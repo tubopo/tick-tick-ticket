@@ -1,5 +1,9 @@
 # TickTickTicket ⌚️
 
+[![CI [branch]](https://github.com/tubopo/tick-tick-ticket/actions/workflows/ci-branch.yml/badge.svg)](https://github.com/tubopo/tick-tick-ticket/actions/workflows/ci-branch.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/tubopo/tick-tick-ticket)](https://goreportcard.com/report/github.com/tubopo/tick-tick-ticket)
+[![MIT License](https://img.shields.io/github/license/mashape/apistatus.svg?maxAge=2592000)](https://github.com/tubopo/tick-tick-ticket/blob/main/LICENSE)
+
 TickTickTicket is a command-line tool that takes the hassle out of logging meeting hours. Say goodbye to tracking down each meeting in your calendar and typing it manually into Jira. TickTickTicket does the heavy lifting for you, automating the process with just a few simple commands.
 
 Simplicity and efficiency are the cores of TickTickTicket. It's fast, it's fuss-free, and it's built to help you reclaim your time for what truly matters. Let's dive in!
