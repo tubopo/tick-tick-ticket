@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"time"
 
@@ -104,7 +105,7 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 	startStr := start.Format(time.RFC3339)
 	endStr := end.Format(time.RFC3339)
 
-	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=%s&endDateTime=%s", startStr, endStr)
+	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=%s&endDateTime=%s", url.QueryEscape(startStr), url.QueryEscape(endStr))
 	s.Logger.Debug("Retrieving calendar events from %s", url)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
