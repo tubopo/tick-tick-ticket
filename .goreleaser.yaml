@@ -15,7 +15,6 @@ builds:
 archives:
   - format: tar.gz
     files:
-      - config.json
       - README.md
       - LICENSE
     name_template: >-
