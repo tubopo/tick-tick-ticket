@@ -55,7 +55,9 @@ func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, erro
 	}()
 
 	authURL := a.oauthCfg.AuthCodeURL(a.state, oauth2.AccessTypeOffline)
+	fmt.Println("---------------------------------------------")
 	fmt.Println("Please follow the URL to authenticate:", authURL)
+	fmt.Println("---------------------------------------------")
 
 	token := <-tokenCh
 	var key authTokenKey
@@ -124,7 +126,7 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 	endStr := end.Format(time.RFC3339)
 
 	url := fmt.Sprintf("https://graph.microsoft.com/v1.0/me/calendarView?startDateTime=%s&endDateTime=%s", url.QueryEscape(startStr), url.QueryEscape(endStr))
-	s.Logger.Debug("Retrieving calendar events from %s", url)
+	s.Logger.Info("Retrieving calendar events from: ", url, " \n")
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -151,7 +153,7 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 	if resp.StatusCode != http.StatusOK {
 		respText, _ := io.ReadAll(resp.Body)
 
-		s.Logger.Debug("Got response:", resp.StatusCode, string(respText))
+		s.Logger.Debug("Got response: ", resp.StatusCode, string(respText))
 
 		return nil, errors.New("failed to retrieve calendar events")
 	}

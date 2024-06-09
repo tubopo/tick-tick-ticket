@@ -15,13 +15,19 @@ func main() {
 	configPath := flag.String("config", "./config.json", "path to the config file")
 	date := flag.String("date", "", "The date for which to retrieve the schedule in YYYY-MM-DD format")
 	ticket := flag.String("ticket", "", "The JIRA ticket to log work against")
+	verbose := flag.Bool("verbose", false, "Debug output enabled")
 
 	flag.Parse()
 
-	log := logger.New()
+	var log logger.Logger
+	if *verbose {
+		log = logger.New(logger.LogLevelDebug)
+	} else {
+		log = logger.New(logger.LogLevelInfo)
+	}
 
 	if *ticket == "" {
-		log.Fatalf("You must specify a JIRA ticket")
+		log.Fatal("You must specify a JIRA ticket")
 	}
 
 	// If no date is specified, use today's date

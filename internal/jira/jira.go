@@ -66,7 +66,7 @@ func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
 	}
 
 	url := fmt.Sprintf("%s/rest/api/2/issue/%s/worklog", s.Cfg.Domain, s.jiraTicket)
-	s.Logger.Debug("Logging time to ", url)
+	s.Logger.Info("Logging time to ", url)
 
 	payload, err := json.Marshal(workLogPayload{TimeSpentSeconds: int(duration.Seconds())})
 	if err != nil {
