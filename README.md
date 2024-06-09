@@ -26,34 +26,37 @@ git clone https://github.com/tubopo/ticktickticket.git
 Navigate to the cloned directory and build the project:
 
 ```sh
-cd cmd/app
-go build -o app
+cd cmd/tick-tick-ticket
+go build -v
 ```
 
 ## Configuration
 
-Create a config.json file with the following structure and provide your Microsoft/Google calendar API keys and Jira settings:
+Create a config.json file with the following structure and provide your Microsoft calendar API keys and Jira settings:
 
 ```json
 {
     "calendar": {
-        "provider": "microsoft",
-        "apiKey": "your_calendar_api_key_here"
+        "clientId": "",
+        "clientSecret": "",
+        "tenantId": ""
     },
     "jira": {
-        "domain": "your_jira_domain",
-        "username": "your_jira_username",
-        "apiToken": "your_jira_api_token"
+        "domain": "",
+        "apiToken": ""
     }
 }
 ```
+
+> You can get your Microsoft calendar API keys from the Azure portal. Please see [documentation](https://learn.microsoft.com/en-us/entra/identity-platform/scenario-desktop-app-registration).
+> To get jira personal token see details [here](https://confluence.atlassian.com/enterprise/using-personal-access-tokens-1026032365.html).
 
 ## Usage
 
 Run TickTickTicket with the date and Jira ticket as arguments:
 
 ```sh
-./app -date="2024-06-17" -ticket="JIRA-123"
+./tick-tick-ticket -date="2024-06-17" -ticket="JIRA-123"
 ```
 
 This command will extract the time spent in meetings for the given date and log it to the specified Jira ticket.

@@ -97,6 +97,24 @@ func NewService(cfg config.MicrosoftConfig, logger logger.Logger) calendar.Servi
 		Logger: logger,
 	}
 }
+
+type event struct {
+	ID          string   `json:"id"`
+	Subject     string   `json:"subject"`
+	Start       startEnd `json:"start"`
+	End         startEnd `json:"end"`
+	Description string   `json:"description"`
+}
+
+type eventResponse struct {
+	Value []event `json:"value"`
+}
+
+type startEnd struct {
+	DateTime string `json:"dateTime"`
+	TimeZone string `json:"timeZone"`
+}
+
 func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) ([]calendar.Event, error) {
 	if start.IsZero() || end.IsZero() {
 		return nil, errors.New("start and end must be set")
@@ -130,24 +148,41 @@ func (s *Service) GetCalendarEvents(start, end time.Time, ctx context.Context) (
 	}
 	defer resp.Body.Close()
 
-	var result struct {
-		Value []calendar.Event `json:"value"`
-	}
-
 	if resp.StatusCode != http.StatusOK {
 		respText, _ := io.ReadAll(resp.Body)
 
-		s.Logger.Debug("Got response: %v, %s", resp.StatusCode, string(respText))
+		s.Logger.Debug("Got response:", resp.StatusCode, string(respText))
 
 		return nil, errors.New("failed to retrieve calendar events")
 	}
 
+	var result = eventResponse{}
+
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
-	s.Logger.Info("Got calendar events %d", len(result.Value))
+	s.Logger.Info("Got calendar events: ", len(result.Value))
 
-	return result.Value, nil
+	events := make([]calendar.Event, len(result.Value))
+
+	const layout = "2006-01-02T15:04:05.0000000"
+	for i, event := range result.Value {
+		start, err := time.Parse(layout, event.Start.DateTime)
+		if err != nil {
+			return nil, err
+		}
+		end, err := time.Parse(layout, event.End.DateTime)
+		if err != nil {
+			return nil, err
+		}
+		events[i] = calendar.Event{
+			ID:    event.ID,
+			Start: start,
+			End:   end,
+		}
+	}
+
+	return events, nil
 }
 
 func (s *Service) CalcTotalDuration(events []calendar.Event) time.Duration {

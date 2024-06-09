@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -64,15 +65,15 @@ func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
 		return errors.New("duration is not set")
 	}
 
-	url := fmt.Sprintf("https://%s/rest/api/2/issue/%s/worklog", s.Cfg.Domain, s.jiraTicket)
-	s.Logger.Debug("Logging time to %s", url)
+	url := fmt.Sprintf("%s/rest/api/2/issue/%s/worklog", s.Cfg.Domain, s.jiraTicket)
+	s.Logger.Debug("Logging time to ", url)
 
 	payload, err := json.Marshal(workLogPayload{TimeSpentSeconds: int(duration.Seconds())})
 	if err != nil {
 		return err
 	}
 
-	s.Logger.Debug("Payload: %+v", payload)
+	s.Logger.Debug("Payload: ", string(payload))
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(payload))
 	if err != nil {
@@ -97,11 +98,11 @@ func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusCreated {
-		s.Logger.Info("Logged time to %s  - %v", url, resp.StatusCode)
+		s.Logger.Info("Logged time to ", url, resp.StatusCode)
 		return nil
 	}
 
-	s.Logger.Debug("Got response: %v", resp.StatusCode)
-
+	respText, _ := io.ReadAll(resp.Body)
+	s.Logger.Debug("Got response:", resp.StatusCode, string(respText))
 	return errors.New("failed to log time to JIRA")
 }

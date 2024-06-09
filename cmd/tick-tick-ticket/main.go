@@ -31,7 +31,7 @@ func main() {
 
 	start, end, err := parseDateToStartEnd(*date)
 	if err != nil {
-		log.Fatal("Failed to parse date: %v", err)
+		log.Fatal("Failed to parse date: ", err)
 	}
 
 	cfg, err := config.Load(*configPath)
@@ -44,14 +44,19 @@ func main() {
 	ctx := context.Background()
 	events, err := calendarService.GetCalendarEvents(start, end, ctx)
 	if err != nil {
-		log.Error("Failed to retrieve calendar events: %v", err)
+		log.Error("Failed to retrieve calendar events: ", err)
 	}
 
 	timeSpent := calendarService.CalcTotalDuration(events)
 
+	log.Info("Total time spent: ", timeSpent.String())
+
 	workLogger := jira.NewService(cfg.Jira, *ticket, log)
 
-	workLogger.LogTime(timeSpent, ctx)
+	err = workLogger.LogTime(timeSpent, ctx)
+	if err != nil {
+		log.Error(err)
+	}
 }
 
 func parseDateToStartEnd(dateStr string) (start, end time.Time, err error) {
