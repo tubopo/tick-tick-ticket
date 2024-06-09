@@ -56,7 +56,13 @@ Create a config.json file with the following structure and provide your Microsof
 Run TickTickTicket with the date and Jira ticket as arguments:
 
 ```sh
-./tick-tick-ticket -date="2024-06-17" -ticket="JIRA-123"
+./tick-tick-ticket --config "/path/to/config.json" --verbose --date="2024-06-17" --ticket="JIRA-123"
+```
+
+Shorten version, using current date:
+
+```sh
+./tick-tick-ticket --ticket="JIRA-123"
 ```
 
 This command will extract the time spent in meetings for the given date and log it to the specified Jira ticket.
