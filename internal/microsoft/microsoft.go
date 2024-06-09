@@ -21,37 +21,45 @@ type Authenticator struct {
 	Cfg      *config.MicrosoftConfig
 	oauthCfg oauth2.Config
 	state    string
-	authCtx  context.Context
 }
 
 type authTokenKey struct{}
 
+var tokenCh = make(chan *oauth2.Token)
+
 func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
 	a.state = "random-state"
+
 	a.oauthCfg = oauth2.Config{
 		ClientID:     a.Cfg.ClientID,
 		ClientSecret: a.Cfg.ClientSecret,
-		Scopes:       []string{"https://graph.microsoft.com/.default"},
-		RedirectURL:  "http://localhost:8000/auth",
+		Scopes: []string{
+			"https://graph.microsoft.com/Calendars.Read.Shared",
+			"https://graph.microsoft.com/Calendars.ReadBasic",
+			"https://graph.microsoft.com/Calendars.ReadWrite",
+			"https://graph.microsoft.com/Calendars.ReadWrite.Shared",
+			"https://graph.microsoft.com/User.Read"},
+		RedirectURL: "http://localhost:8000/auth",
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/authorize", a.Cfg.TenantID),
 			TokenURL: fmt.Sprintf("https://login.microsoftonline.com/%s/oauth2/v2.0/token", a.Cfg.TenantID),
 		},
 	}
 
-	http.HandleFunc("/auth/callback", a.AuthCallBackHandler)
+	http.HandleFunc("/auth", a.AuthCallBackHandler)
 	go func() {
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		if err := http.ListenAndServe(":8000", nil); err != nil {
 			fmt.Printf("Error starting server: %s\n", err.Error())
 		}
 	}()
 
 	authURL := a.oauthCfg.AuthCodeURL(a.state, oauth2.AccessTypeOffline)
-
 	fmt.Println("Please follow the URL to authenticate:", authURL)
 
-	// var key authTokenKey
-	// ctx = context.WithValue(ctx, key, a.authCtx.Value(authTokenKey{}))
+	token := <-tokenCh
+	var key authTokenKey
+	ctx = context.WithValue(ctx, key, token.AccessToken)
+	close(tokenCh)
 
 	return ctx, nil
 }
@@ -66,13 +74,13 @@ func (a *Authenticator) AuthCallBackHandler(w http.ResponseWriter, r *http.Reque
 	token, err := a.oauthCfg.Exchange(context.Background(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Printf("Error exchanging token: %s\n", err.Error())
 		return
 	}
 
-	fmt.Fprintf(w, "Authentication successful! Token: %+v\n", token)
+	tokenCh <- token
 
-	var key authTokenKey
-	a.authCtx = context.WithValue(r.Context(), key, token)
+	w.Write([]byte("Authentication successful, you can close this window."))
 }
 
 type Service struct {
