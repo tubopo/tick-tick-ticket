@@ -71,7 +71,7 @@ func (s *Service) LogTime(duration time.Duration, dateStart time.Time, ctx conte
 
 	payload, err := json.Marshal(
 		workLogPayload{
-			Started:          dateStart.UTC().Format("2006-01-02T15:04:05.000+0000"),
+			Started:          dateStart.Format("2006-01-02T15:04:05.000+0000"),
 			TimeSpentSeconds: int(duration.Seconds())},
 	)
 	if err != nil {
