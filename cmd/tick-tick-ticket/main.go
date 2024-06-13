@@ -59,7 +59,7 @@ func main() {
 
 	workLogger := jira.NewService(cfg.Jira, *ticket, log)
 
-	err = workLogger.LogTime(timeSpent, ctx)
+	err = workLogger.LogTime(timeSpent, start, ctx)
 	if err != nil {
 		log.Error(err)
 	}

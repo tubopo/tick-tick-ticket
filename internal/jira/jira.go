@@ -23,7 +23,8 @@ type Authenticator struct {
 type authKey struct{}
 
 type workLogPayload struct {
-	TimeSpentSeconds int `json:"timeSpentSeconds"`
+	Started          string `json:"started"`
+	TimeSpentSeconds int    `json:"timeSpentSeconds"`
 }
 
 func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
@@ -56,7 +57,7 @@ func NewService(cfg config.JiraConfig, jiraTicket string, log logger.Logger) wor
 	}
 }
 
-func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
+func (s *Service) LogTime(duration time.Duration, dateStart time.Time, ctx context.Context) error {
 	if s.jiraTicket == "" {
 		return errors.New("jira ticket is not set")
 	}
@@ -68,7 +69,11 @@ func (s *Service) LogTime(duration time.Duration, ctx context.Context) error {
 	url := fmt.Sprintf("%s/rest/api/2/issue/%s/worklog", s.Cfg.Domain, s.jiraTicket)
 	s.Logger.Info("Logging time to ", url)
 
-	payload, err := json.Marshal(workLogPayload{TimeSpentSeconds: int(duration.Seconds())})
+	payload, err := json.Marshal(
+		workLogPayload{
+			Started:          dateStart.Format("2006-01-02T15:04:05.000+0000"),
+			TimeSpentSeconds: int(duration.Seconds())},
+	)
 	if err != nil {
 		return err
 	}
