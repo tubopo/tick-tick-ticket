@@ -19,9 +19,10 @@ import (
 )
 
 type Authenticator struct {
-	Cfg      *config.MicrosoftConfig
-	oauthCfg oauth2.Config
-	state    string
+	Cfg        *config.MicrosoftConfig
+	oauthCfg   oauth2.Config
+	state      string
+	tokenStore auth.TokenStore
 }
 
 type authTokenKey struct{}
@@ -29,6 +30,16 @@ type authTokenKey struct{}
 var tokenCh = make(chan *oauth2.Token)
 
 func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, error) {
+	err := a.tokenStore.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	var key authTokenKey
+	if a.tokenStore.IsValid() {
+		return context.WithValue(ctx, key, a.tokenStore.Token.AccessToken), nil
+	}
+
 	a.state = "random-state"
 
 	a.oauthCfg = oauth2.Config{
@@ -60,7 +71,13 @@ func (a *Authenticator) Authenticate(ctx context.Context) (context.Context, erro
 	fmt.Println("---------------------------------------------")
 
 	token := <-tokenCh
-	var key authTokenKey
+
+	a.tokenStore.Token = token
+	err = a.tokenStore.Save()
+	if err != nil {
+		return nil, err
+	}
+
 	ctx = context.WithValue(ctx, key, token.AccessToken)
 	close(tokenCh)
 
